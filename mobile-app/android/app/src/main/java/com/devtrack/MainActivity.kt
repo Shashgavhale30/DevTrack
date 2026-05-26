@@ -1,11 +1,20 @@
 package com.devtrack
 
+import android.graphics.Color
+import android.os.Bundle
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 class MainActivity : ReactActivity() {
+
+  @Suppress("DEPRECATION")
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    window.statusBarColor = Color.parseColor("#050711")
+    window.navigationBarColor = Color.parseColor("#050711")
+  }
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
