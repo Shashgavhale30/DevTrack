@@ -7,45 +7,50 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import type { MainScreen } from './types';
 
 type NavItem = {
   icon: string;
-  label: string;
+  label: MainScreen | 'More';
 };
 
 const navItems: NavItem[] = [
   { icon: 'HM', label: 'Home' },
-  { icon: 'OK', label: 'Task' },
-  { icon: 'ME', label: 'Profile' },
-  { icon: '...', label: 'Other' },
+  { icon: 'TS', label: 'Tasks' },
+  { icon: 'PF', label: 'Profile' },
+  { icon: 'MR', label: 'More' },
 ];
 
-const otherItems: NavItem[] = [
+const otherItems: Array<{ icon: string; label: MainScreen }> = [
   { icon: 'LC', label: 'LeetCode' },
   { icon: 'GH', label: 'GitHub' },
   { icon: '<>', label: 'VS Code' },
-  { icon: 'ST', label: 'Setting' },
+  { icon: 'ST', label: 'Settings' },
   { icon: 'RS', label: 'Resources' },
 ];
 
-function NavBar() {
-  const [activeTab, setActiveTab] = useState('Home');
+function NavBar({
+  activeScreen,
+  onNavigate,
+}: {
+  activeScreen: MainScreen;
+  onNavigate: (screen: MainScreen) => void;
+}) {
   const [menuVisible, setMenuVisible] = useState(false);
 
-  const handleNavPress = (label: string) => {
-    if (label === 'Other') {
+  const handleNavPress = (label: MainScreen | 'More') => {
+    if (label === 'More') {
       setMenuVisible(true);
       return;
     }
 
-    setActiveTab(label);
+    onNavigate(label);
     setMenuVisible(false);
   };
 
-  const handleOtherPress = (label: string) => {
-    setActiveTab('Other');
+  const handleOtherPress = (label: MainScreen) => {
+    onNavigate(label);
     setMenuVisible(false);
-    console.log(`${label} selected`);
   };
 
   return (
@@ -81,7 +86,9 @@ function NavBar() {
 
       <View style={styles.bottomNav}>
         {navItems.map(item => {
-          const active = activeTab === item.label;
+          const active =
+            activeScreen === item.label ||
+            (item.label === 'More' && otherItems.some(otherItem => otherItem.label === activeScreen));
 
           return (
             <Pressable
@@ -111,17 +118,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     paddingHorizontal: 22,
-    paddingBottom: 92,
-    backgroundColor: 'rgba(5, 7, 17, 0.2)',
+    paddingBottom: 98,
+    backgroundColor: 'rgba(7, 9, 20, 0.28)',
   },
   otherMenu: {
     alignSelf: 'flex-end',
-    width: 196,
-    borderRadius: 18,
+    width: 208,
+    borderRadius: 22,
     paddingVertical: 8,
-    backgroundColor: '#202235',
+    backgroundColor: '#171A2B',
     borderWidth: 1,
-    borderColor: '#30324a',
+    borderColor: '#2B2E43',
     shadowColor: '#000',
     shadowOpacity: 0.34,
     shadowOffset: { width: 0, height: 12 },
@@ -136,23 +143,23 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pressedMenuItem: {
-    backgroundColor: '#2b2d43',
+    backgroundColor: '#25283C',
   },
   otherIconWrap: {
     width: 28,
     height: 28,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2f3149',
+    backgroundColor: '#24283C',
   },
   otherIcon: {
-    color: '#ffd22f',
+    color: '#FFD64A',
     fontSize: 11,
     fontWeight: '900',
   },
   otherLabel: {
-    color: '#f7f5ff',
+    color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '700',
   },
@@ -160,14 +167,16 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     right: 16,
-    bottom: 10,
-    height: 70,
-    borderRadius: 22,
-    backgroundColor: '#191b2c',
+    bottom: 12,
+    height: 72,
+    borderRadius: 24,
+    backgroundColor: '#171A2B',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
     paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: '#2B2E43',
     shadowColor: '#000',
     shadowOpacity: 0.35,
     shadowOffset: { width: 0, height: 12 },
@@ -175,9 +184,9 @@ const styles = StyleSheet.create({
     elevation: 9,
   },
   tabItem: {
-    width: 68,
-    height: 56,
-    borderRadius: 18,
+    width: 70,
+    height: 58,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
@@ -186,20 +195,20 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   activeTab: {
-    backgroundColor: '#28283c',
+    backgroundColor: '#25283C',
   },
   tabIcon: {
-    color: '#aaa8b8',
-    fontSize: 18,
+    color: '#A7A3B6',
+    fontSize: 16,
     fontWeight: '900',
   },
   tabLabel: {
-    color: '#aaa8b8',
+    color: '#A7A3B6',
     fontSize: 11,
     fontWeight: '700',
   },
   activeText: {
-    color: '#ffd22f',
+    color: '#FFD64A',
   },
 });
 

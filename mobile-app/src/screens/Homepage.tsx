@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import {
+  Pressable,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -9,14 +10,14 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import NavBar from '../NavBar';
+import type { MainScreen, PlatformAccount, Registration } from '../types';
 
 type Stat = {
   accent: string;
   icon: string;
   label: string;
   value: string;
-  unit?: string;
-  footnote: string;
+  helper: string;
 };
 
 type Project = {
@@ -24,8 +25,8 @@ type Project = {
   icon: string;
   name: string;
   description: string;
-  status: string;
   progress: number;
+  meta: string;
 };
 
 type Task = {
@@ -36,117 +37,122 @@ type Task = {
   done: boolean;
 };
 
-const stats: Stat[] = [
-  {
-    accent: '#45dc75',
-    icon: 'hot',
-    label: 'Streak',
-    value: '12',
-    unit: 'days',
-    footnote: 'Keep it up',
-  },
-  {
-    accent: '#8d78ff',
-    icon: '</>',
-    label: 'Coding Time',
-    value: '4.6',
-    unit: 'hrs',
-    footnote: '+1.2h vs yesterday',
-  },
-  {
-    accent: '#ff5b86',
-    icon: 'git',
-    label: 'Commits',
-    value: '8',
-    footnote: '+3 vs yesterday',
-  },
-  {
-    accent: '#4a8dff',
-    icon: 'aim',
-    label: 'Tasks Done',
-    value: '6/10',
-    footnote: '60% completed',
-  },
-];
-
 const projects: Project[] = [
   {
-    accent: '#806bff',
-    icon: '</>',
-    name: 'DevTrack Web App',
-    description: 'A productivity tracker for developers',
-    status: 'In Progress',
+    accent: '#8F7BFF',
+    icon: 'DT',
+    name: 'DevTrack Mobile',
+    description: 'Personal developer progress dashboard',
     progress: 72,
+    meta: 'React Native',
   },
   {
-    accent: '#58dd78',
+    accent: '#5BE37D',
+    icon: 'WEB',
+    name: 'Public Progress Page',
+    description: 'Shareable profile for HR and hiring partners',
+    progress: 54,
+    meta: 'Website',
+  },
+  {
+    accent: '#FFD64A',
     icon: 'AI',
     name: 'AI Code Assistant',
-    description: 'VS Code extension for AI suggestions',
-    status: 'In Progress',
-    progress: 48,
+    description: 'VS Code extension for smarter suggestions',
+    progress: 38,
+    meta: 'Extension',
   },
 ];
 
 const tasks: Task[] = [
   {
-    accent: '#55dd78',
-    title: 'Implement authentication flow',
-    project: 'DevTrack Web App',
+    accent: '#5BE37D',
+    title: 'Build dashboard cards',
+    project: 'DevTrack Mobile',
     due: 'Today',
     done: true,
   },
   {
-    accent: '#ff5c9e',
-    title: 'Design dashboard UI',
-    project: 'DevTrack Web App',
+    accent: '#FF668F',
+    title: 'Design public profile view',
+    project: 'Public Progress Page',
     due: 'Today',
     done: false,
   },
   {
-    accent: '#5f8dff',
-    title: 'Write unit tests',
-    project: 'DevTrack Web App',
+    accent: '#4BA3FF',
+    title: 'Connect GitHub activity',
+    project: 'DevTrack Mobile',
     due: 'Tomorrow',
     done: false,
   },
 ];
 
-function Homepage() {
+function Homepage({
+  activeScreen,
+  onNavigate,
+  onLogout,
+  user,
+}: {
+  activeScreen: MainScreen;
+  onNavigate: (screen: MainScreen) => void;
+  onLogout: () => void;
+  user: Registration | null;
+}) {
   const { width } = useWindowDimensions();
   const compact = width < 380;
   const greeting = useMemo(() => getGreeting(), []);
   const activity = useMemo(() => buildActivity(), []);
+  const displayName = user?.fullName || 'Developer';
+  const firstName = displayName.split(' ')[0] || displayName;
+  const initials = getInitials(displayName);
+  const platformAccounts = user?.platformAccounts || [];
+  const stats = useMemo(() => buildStats(user), [user]);
 
   return (
     <SafeAreaView style={styles.screen}>
-      <StatusBar barStyle="light-content" backgroundColor="#050711" />
-      <View style={styles.backgroundGlowTop} />
-      <View style={styles.backgroundGlowBottom} />
+      <StatusBar barStyle="light-content" backgroundColor="#070914" />
+      <View style={styles.glowTop} />
+      <View style={styles.glowSide} />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}>
-        <Header />
-        <View style={styles.greetingRow}>
-          <Avatar />
-          <View style={styles.greetingCopy}>
-            <Text style={styles.greeting}>{greeting}, Arjun!</Text>
-            <Text style={styles.subtitle}>Let's build something great today.</Text>
+        <Header initials={initials} onLogout={onLogout} />
+
+        <View style={styles.hero}>
+          <View style={styles.greetingRow}>
+            <Avatar initials={initials} />
+            <View style={styles.greetingCopy}>
+              <Text style={styles.kicker}>{greeting}, {firstName}</Text>
+              <Text style={styles.heroTitle}>Your DevTrack account is connected.</Text>
+              <Text style={styles.heroEmail}>{user?.email || 'No email loaded'}</Text>
+            </View>
+          </View>
+          <View style={styles.heroFooter}>
+            <Metric label="Login method" value={formatProvider(user?.loginProvider)} />
+            <Metric label="Platforms" value={`${platformAccounts.length}/3`} />
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveText}>Signed in</Text>
+            </View>
           </View>
         </View>
 
         <View style={styles.statsGrid}>
           {stats.map(stat => (
-            <StatCard key={stat.label} stat={stat} compact={compact} />
+            <StatCard key={stat.label} compact={compact} stat={stat} />
           ))}
         </View>
 
         <ActivityCard activity={activity} />
+        <PlatformAccountsCard accounts={platformAccounts} />
+        <PublicProfileCard user={user} />
         <ProjectsSection />
         <TasksSection />
-        <ProgressCard />
       </ScrollView>
-      <NavBar />
+
+      <NavBar activeScreen={activeScreen} onNavigate={onNavigate} />
       <View style={styles.fab}>
         <Text style={styles.fabText}>+</Text>
       </View>
@@ -154,33 +160,42 @@ function Homepage() {
   );
 }
 
-function Header() {
+function Header({ initials, onLogout }: { initials: string; onLogout: () => void }) {
   return (
     <View style={styles.header}>
-      <Text style={styles.headerIcon}>gear</Text>
+      <View style={styles.brandMark}>
+        <Text style={styles.brandMarkText}>D</Text>
+      </View>
       <Text style={styles.logo}>
         Dev<Text style={styles.logoAccent}>Track</Text>
       </Text>
       <View style={styles.headerActions}>
-        <Text style={styles.headerIcon}>find</Text>
-        <View>
-          <Text style={styles.headerIcon}>bell</Text>
+        <Text style={styles.headerButton}>{initials}</Text>
+        <View style={styles.headerBell}>
+          <Text style={styles.headerButton}>NT</Text>
           <View style={styles.notificationDot} />
         </View>
+        <Pressable style={({ pressed }) => [styles.logoutButton, pressed && styles.pressed]} onPress={onLogout}>
+          <Text style={styles.logoutText}>OUT</Text>
+        </Pressable>
       </View>
     </View>
   );
 }
 
-function Avatar() {
+function Avatar({ initials }: { initials: string }) {
   return (
     <View style={styles.avatar}>
-      <View style={styles.avatarHair} />
-      <View style={styles.avatarFace}>
-        <View style={styles.avatarEyes} />
-        <View style={styles.avatarSmile} />
-      </View>
-      <View style={styles.avatarBody} />
+      <Text style={styles.avatarText}>{initials}</Text>
+    </View>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <View>
+      <Text style={styles.metricValue}>{value}</Text>
+      <Text style={styles.metricLabel}>{label}</Text>
     </View>
   );
 }
@@ -191,69 +206,107 @@ function StatCard({ stat, compact }: { stat: Stat; compact: boolean }) {
       <View style={[styles.statIcon, { backgroundColor: `${stat.accent}22` }]}>
         <Text style={[styles.statIconText, { color: stat.accent }]}>{stat.icon}</Text>
       </View>
+      <Text style={styles.statValue}>{stat.value}</Text>
       <Text style={styles.statLabel}>{stat.label}</Text>
-      <Text style={styles.statValue}>
-        {stat.value}
-        {stat.unit ? <Text style={[styles.statUnit, { color: stat.accent }]}> {stat.unit}</Text> : null}
-      </Text>
-      <Text
-        style={[
-          styles.statFootnote,
-          stat.footnote.startsWith('+') || stat.footnote.includes('%')
-            ? { color: stat.accent }
-            : null,
-        ]}>
-        {stat.footnote}
-      </Text>
+      <Text style={[styles.statHelper, { color: stat.accent }]}>{stat.helper}</Text>
     </View>
   );
 }
 
 function ActivityCard({ activity }: { activity: number[][] }) {
-  const contributionTotal = activity.flat().reduce((total, level) => total + level, 0) * 3;
-
   return (
     <View style={styles.panel}>
       <View style={styles.panelHeader}>
-        <View style={styles.inlineTitle}>
-          <Text style={styles.panelIcon}>cal</Text>
-          <Text style={styles.panelTitle}>GitHub Activity</Text>
+        <View>
+          <Text style={styles.panelEyebrow}>GitHub Activity</Text>
+          <Text style={styles.panelTitle}>Consistency map</Text>
         </View>
-        <Text style={styles.mutedAction}>This Week v</Text>
+        <View style={styles.rangePill}>
+          <Text style={styles.rangeText}>This week</Text>
+        </View>
       </View>
-      <View style={styles.weekLabels}>
-        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-          <Text key={`${day}-${index}`} style={styles.weekLabel}>
-            {day}
-          </Text>
-        ))}
-      </View>
+
       <View style={styles.activityRows}>
-        {activity.map((week, rowIndex) => (
-          <View key={`week-${rowIndex}`} style={styles.activityRow}>
+        {activity.map((row, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.activityRow}>
             <Text style={styles.activityDate}>{['Mar 31', 'Apr 7', 'Apr 14', 'Apr 21'][rowIndex]}</Text>
             <View style={styles.activityCells}>
-              {week.map((level, columnIndex) => (
+              {row.map((level, columnIndex) => (
                 <View
                   key={`${rowIndex}-${columnIndex}`}
-                  style={[
-                    styles.activityCell,
-                    getActivityCellStyle(level),
-                  ]}
+                  style={[styles.activityCell, getActivityCellStyle(level)]}
                 />
               ))}
             </View>
           </View>
         ))}
       </View>
-      <View style={styles.divider} />
+
       <View style={styles.activityFooter}>
-        <Text style={styles.footerMetric}>
-          Longest streak: <Text style={styles.greenText}>12 days</Text>
+        <Metric label="Longest streak" value="12 days" />
+        <Metric label="Contributions" value="186" />
+      </View>
+    </View>
+  );
+}
+
+function PlatformAccountsCard({ accounts }: { accounts: PlatformAccount[] }) {
+  return (
+    <View style={styles.panel}>
+      <View style={styles.panelHeader}>
+        <View>
+          <Text style={styles.panelEyebrow}>Registered Accounts</Text>
+          <Text style={styles.panelTitle}>Platform identity</Text>
+        </View>
+        <View style={styles.rangePill}>
+          <Text style={styles.rangeText}>{accounts.length} linked</Text>
+        </View>
+      </View>
+      <View style={styles.accountRows}>
+        {accounts.map(account => (
+          <View key={account.platform} style={styles.accountRow}>
+            <View style={styles.accountIcon}>
+              <Text style={styles.accountIconText}>{getPlatformIcon(account.platform)}</Text>
+            </View>
+            <View style={styles.accountContent}>
+              <Text style={styles.accountTitle}>{formatProvider(account.platform)}</Text>
+              <Text style={styles.accountDescription}>
+                {account.usesSameEmail ? 'Uses registration email' : account.platformId}
+              </Text>
+            </View>
+            <View style={[styles.accountBadge, !account.usesSameEmail && styles.accountBadgeAlt]}>
+              <Text style={styles.accountBadgeText}>
+                {account.usesSameEmail ? 'Same' : 'ID'}
+              </Text>
+            </View>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+function PublicProfileCard({ user }: { user: Registration | null }) {
+  const slug = buildSlug(user?.fullName || user?.email || 'developer');
+
+  return (
+    <View style={styles.publicCard}>
+      <View style={styles.publicCopy}>
+        <Text style={styles.publicEyebrow}>Public Web Page</Text>
+        <Text style={styles.publicTitle}>Hiring-ready progress profile</Text>
+        <Text style={styles.publicText}>
+          Share {user?.fullName || 'your'} live progress with HR, recruiters, mentors, and hiring partners.
         </Text>
-        <Text style={styles.footerMetric}>
-          Total contributions: <Text style={styles.greenText}>{contributionTotal}</Text>
-        </Text>
+      </View>
+      <View style={styles.publicPreview}>
+        <Text style={styles.previewUrl}>devtrack.dev/{slug}</Text>
+        <View style={styles.previewLineWide} />
+        <View style={styles.previewLine} />
+        <View style={styles.previewStats}>
+          <Text style={styles.previewStat}>12d</Text>
+          <Text style={styles.previewStat}>84</Text>
+          <Text style={styles.previewStat}>7</Text>
+        </View>
       </View>
     </View>
   );
@@ -262,8 +315,8 @@ function ActivityCard({ activity }: { activity: number[][] }) {
 function ProjectsSection() {
   return (
     <View style={styles.section}>
-      <SectionHeader title="Active Projects" />
-      <View style={styles.panel}>
+      <SectionHeader title="Active Projects" action="View all" />
+      <View style={styles.panelTight}>
         {projects.map((project, index) => (
           <View key={project.name}>
             <View style={styles.projectRow}>
@@ -272,15 +325,10 @@ function ProjectsSection() {
               </View>
               <View style={styles.projectContent}>
                 <View style={styles.rowBetween}>
-                  <View style={styles.flexShrink}>
-                    <Text style={styles.projectTitle}>{project.name}</Text>
-                    <Text style={styles.projectDescription}>{project.description}</Text>
-                  </View>
-                  <View style={styles.statusPill}>
-                    <View style={[styles.statusDot, { backgroundColor: project.accent }]} />
-                    <Text style={styles.statusText}>{project.status}</Text>
-                  </View>
+                  <Text style={styles.projectTitle}>{project.name}</Text>
+                  <Text style={styles.projectMeta}>{project.meta}</Text>
                 </View>
+                <Text style={styles.projectDescription}>{project.description}</Text>
                 <View style={styles.progressRow}>
                   <View style={styles.progressTrack}>
                     <View
@@ -293,7 +341,6 @@ function ProjectsSection() {
                   <Text style={styles.progressPercent}>{project.progress}%</Text>
                 </View>
               </View>
-              <Text style={styles.menuDots}>...</Text>
             </View>
             {index < projects.length - 1 ? <View style={styles.rowDivider} /> : null}
           </View>
@@ -306,23 +353,23 @@ function ProjectsSection() {
 function TasksSection() {
   return (
     <View style={styles.section}>
-      <SectionHeader title="Today's Tasks" />
-      <View style={styles.taskPanel}>
+      <SectionHeader title="Today's Tasks" action="Add" />
+      <View style={styles.panelTight}>
         {tasks.map((task, index) => (
           <View key={task.title}>
             <View style={styles.taskRow}>
-              <View style={[styles.taskAccent, { backgroundColor: task.accent }]} />
               <View style={[styles.checkCircle, task.done && { backgroundColor: task.accent, borderColor: task.accent }]}>
-                {task.done ? <Text style={styles.checkText}>✓</Text> : null}
+                <Text style={[styles.checkText, task.done && styles.checkTextDone]}>
+                  {task.done ? 'OK' : ''}
+                </Text>
               </View>
               <View style={styles.taskContent}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
                 <Text style={styles.projectDescription}>{task.project}</Text>
               </View>
-              <View style={[styles.duePill, { backgroundColor: `${task.accent}22` }]}>
+              <View style={[styles.duePill, { backgroundColor: `${task.accent}20` }]}>
                 <Text style={[styles.dueText, { color: task.accent }]}>{task.due}</Text>
               </View>
-              <Text style={styles.menuDots}>...</Text>
             </View>
             {index < tasks.length - 1 ? <View style={styles.rowDivider} /> : null}
           </View>
@@ -332,55 +379,11 @@ function TasksSection() {
   );
 }
 
-function ProgressCard() {
-  return (
-    <View style={styles.progressPanel}>
-      <View style={styles.todayProgressCopy}>
-        <Text style={styles.miniLabel}>Today's Progress</Text>
-        <Text style={styles.bigMetric}>
-          4.6 <Text style={styles.bigMetricUnit}>hrs</Text>
-        </Text>
-        <Text style={styles.goalText}>
-          of <Text style={styles.greenText}>6 hr</Text> goal
-        </Text>
-      </View>
-      <View style={styles.chart}>
-        <View style={styles.chartLine} />
-        {[24, 45, 35, 58].map((bottom, index) => (
-          <View
-            key={bottom}
-            style={[
-              styles.chartPoint,
-              {
-                left: 18 + index * 48,
-                bottom,
-              },
-            ]}
-          />
-        ))}
-        <View style={[styles.chartSegment, styles.chartSegmentOne]} />
-        <View style={[styles.chartSegment, styles.chartSegmentTwo]} />
-        <View style={[styles.chartSegment, styles.chartSegmentThree]} />
-        <View style={styles.chartDays}>
-          {['S', 'M', 'T', 'W', 'T'].map((day, index) => (
-            <Text key={`${day}-${index}`} style={styles.chartDay}>
-              {day}
-            </Text>
-          ))}
-        </View>
-      </View>
-      <View style={styles.ring}>
-        <Text style={styles.ringText}>77%</Text>
-      </View>
-    </View>
-  );
-}
-
-function SectionHeader({ title }: { title: string }) {
+function SectionHeader({ title, action }: { title: string; action: string }) {
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.viewAll}>View all</Text>
+      <Text style={styles.sectionAction}>{action}</Text>
     </View>
   );
 }
@@ -399,13 +402,96 @@ function getGreeting() {
   return 'Good evening';
 }
 
+function buildStats(user: Registration | null): Stat[] {
+  const sameEmailCount = user?.platformAccounts.filter(account => account.usesSameEmail).length || 0;
+  const differentEmailCount = user?.platformAccounts.filter(account => !account.usesSameEmail).length || 0;
+
+  return [
+    {
+      accent: '#5BE37D',
+      icon: 'OK',
+      label: 'Account',
+      value: user ? 'Live' : 'Guest',
+      helper: 'MongoDB loaded',
+    },
+    {
+      accent: '#8F7BFF',
+      icon: 'IN',
+      label: 'Login',
+      value: formatProvider(user?.loginProvider),
+      helper: 'Registered method',
+    },
+    {
+      accent: '#FF668F',
+      icon: 'SM',
+      label: 'Same Mail',
+      value: String(sameEmailCount),
+      helper: 'Platform matches',
+    },
+    {
+      accent: '#4BA3FF',
+      icon: 'ID',
+      label: 'Alt IDs',
+      value: String(differentEmailCount),
+      helper: 'Different email',
+    },
+  ];
+}
+
+function formatProvider(provider?: string) {
+  if (!provider) {
+    return 'None';
+  }
+
+  if (provider === 'github') {
+    return 'GitHub';
+  }
+
+  if (provider === 'leetcode') {
+    return 'LeetCode';
+  }
+
+  return provider.charAt(0).toUpperCase() + provider.slice(1);
+}
+
+function getPlatformIcon(platform: string) {
+  if (platform === 'github') {
+    return 'GH';
+  }
+
+  if (platform === 'leetcode') {
+    return 'LC';
+  }
+
+  return 'G';
+}
+
+function getInitials(name: string) {
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part.charAt(0).toUpperCase())
+    .join('');
+
+  return initials || 'DV';
+}
+
+function buildSlug(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/@.*$/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'developer';
+}
+
 function buildActivity() {
   const today = new Date();
   const seed = today.getDate() + today.getMonth() * 7;
 
-  return Array.from({ length: 4 }, (_rowItem, row) =>
-    Array.from({ length: 23 }, (_columnItem, column) => {
-      const value = (row * 11 + column * 5 + seed) % 9;
+  return Array.from({ length: 4 }, (_row, row) =>
+    Array.from({ length: 22 }, (_column, column) => {
+      const value = (row * 13 + column * 5 + seed) % 10;
       if (value > 7) {
         return 3;
       }
@@ -424,162 +510,214 @@ function getActivityCellStyle(level: number) {
   return {
     backgroundColor:
       level === 0
-        ? '#2a2c42'
+        ? '#272A3D'
         : level === 1
-          ? '#29483d'
+          ? '#24533E'
           : level === 2
-            ? '#327d51'
-            : '#51df71',
+            ? '#32A662'
+            : '#65EB83',
   };
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#050711',
+    backgroundColor: '#070914',
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 10,
-    paddingBottom: 118,
+    paddingBottom: 120,
   },
-  backgroundGlowTop: {
+  glowTop: {
     position: 'absolute',
-    top: -80,
-    left: -40,
-    right: -40,
-    height: 280,
-    backgroundColor: '#15172b',
-    opacity: 0.65,
+    top: -120,
+    left: -80,
+    right: -80,
+    height: 320,
     borderBottomLeftRadius: 180,
     borderBottomRightRadius: 180,
+    backgroundColor: '#242141',
+    opacity: 0.82,
   },
-  backgroundGlowBottom: {
+  glowSide: {
     position: 'absolute',
-    right: -100,
-    bottom: 100,
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: '#443581',
-    opacity: 0.18,
+    right: -120,
+    top: 250,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: '#7C5CFF',
+    opacity: 0.13,
   },
   header: {
-    height: 46,
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  brandMark: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFD64A',
+  },
+  brandMarkText: {
+    color: '#10121D',
+    fontSize: 18,
+    fontWeight: '900',
   },
   logo: {
-    color: '#f7f5ff',
-    fontSize: 25,
-    fontWeight: '800',
+    flex: 1,
+    marginLeft: 10,
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '900',
   },
   logoAccent: {
-    color: '#927cff',
+    color: '#A18CFF',
   },
   headerActions: {
     flexDirection: 'row',
-    gap: 14,
-    alignItems: 'center',
+    gap: 10,
   },
-  headerIcon: {
-    color: '#d9d9e8',
+  headerButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    color: '#E8E6F6',
+    backgroundColor: '#1A1D2F',
+    textAlign: 'center',
+    textAlignVertical: 'center',
     fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
+    fontWeight: '900',
+  },
+  headerBell: {
+    position: 'relative',
+  },
+  logoutButton: {
+    width: 42,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#332232',
+  },
+  logoutText: {
+    color: '#FF8AA7',
+    fontSize: 10,
+    fontWeight: '900',
   },
   notificationDot: {
     position: 'absolute',
-    right: -4,
-    top: -3,
+    top: 2,
+    right: 2,
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#ff4c92',
+    backgroundColor: '#FF668F',
+  },
+  hero: {
+    marginTop: 16,
+    borderRadius: 26,
+    padding: 18,
+    backgroundColor: '#15182A',
+    borderWidth: 1,
+    borderColor: '#292D43',
   },
   greetingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 18,
-    gap: 12,
+    gap: 14,
   },
   avatar: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: '#bdb1ff',
-    overflow: 'hidden',
+    width: 58,
+    height: 58,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#A18CFF',
   },
-  avatarHair: {
-    width: 30,
-    height: 15,
-    borderRadius: 14,
-    backgroundColor: '#161827',
-    marginTop: 9,
-  },
-  avatarFace: {
-    width: 30,
-    height: 28,
-    borderRadius: 15,
-    backgroundColor: '#f2b184',
-    marginTop: -4,
-    alignItems: 'center',
-  },
-  avatarEyes: {
-    width: 17,
-    height: 4,
-    borderLeftWidth: 3,
-    borderRightWidth: 3,
-    borderColor: '#1d1e2d',
-    marginTop: 10,
-  },
-  avatarSmile: {
-    width: 12,
-    height: 6,
-    borderBottomWidth: 2,
-    borderColor: '#1d1e2d',
-    borderRadius: 8,
-    marginTop: 4,
-  },
-  avatarBody: {
-    width: 38,
-    height: 22,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    backgroundColor: '#1d2130',
-    marginTop: -3,
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '900',
   },
   greetingCopy: {
     flex: 1,
   },
-  greeting: {
-    color: '#f7f5ff',
-    fontSize: 22,
-    fontWeight: '800',
+  kicker: {
+    color: '#BDB9D1',
+    fontSize: 14,
+    fontWeight: '700',
   },
-  subtitle: {
-    marginTop: 4,
-    color: '#9998ad',
-    fontSize: 15,
+  heroEmail: {
+    marginTop: 6,
+    color: '#8F8BA0',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  heroTitle: {
+    marginTop: 6,
+    color: '#FFFFFF',
+    fontSize: 25,
+    lineHeight: 31,
+    fontWeight: '900',
+  },
+  heroFooter: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#2B2E43',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  metricValue: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  metricLabel: {
+    marginTop: 3,
+    color: '#9693A7',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  liveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    backgroundColor: '#213529',
+  },
+  liveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#5BE37D',
+  },
+  liveText: {
+    color: '#73ED8F',
+    fontSize: 11,
+    fontWeight: '900',
   },
   statsGrid: {
+    marginTop: 14,
     flexDirection: 'row',
     gap: 8,
   },
   statCard: {
     flex: 1,
-    minHeight: 126,
-    borderRadius: 14,
+    minHeight: 122,
+    borderRadius: 18,
     padding: 10,
-    backgroundColor: '#181a2b',
-    shadowColor: '#000',
-    shadowOpacity: 0.28,
-    shadowOffset: { width: 0, height: 12 },
-    shadowRadius: 22,
-    elevation: 5,
+    backgroundColor: '#171A2B',
+    borderWidth: 1,
+    borderColor: '#25283C',
   },
   statCardCompact: {
     padding: 8,
@@ -587,94 +725,88 @@ const styles = StyleSheet.create({
   statIcon: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 13,
+    marginBottom: 14,
   },
   statIconText: {
-    fontWeight: '900',
     fontSize: 11,
-  },
-  statLabel: {
-    color: '#bbb9c9',
-    fontSize: 12,
+    fontWeight: '900',
   },
   statValue: {
-    color: '#fbfaff',
-    fontSize: 27,
+    color: '#FFFFFF',
+    fontSize: 23,
     fontWeight: '900',
-    marginTop: 9,
   },
-  statUnit: {
+  statLabel: {
+    marginTop: 3,
+    color: '#BBB8C9',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
-  statFootnote: {
-    color: '#a7a5b7',
+  statHelper: {
+    marginTop: 8,
     fontSize: 10,
-    marginTop: 7,
+    fontWeight: '800',
   },
   panel: {
     marginTop: 14,
-    borderRadius: 16,
-    padding: 12,
-    backgroundColor: '#181a2b',
-    shadowColor: '#000',
-    shadowOpacity: 0.22,
-    shadowOffset: { width: 0, height: 10 },
-    shadowRadius: 20,
-    elevation: 4,
+    borderRadius: 22,
+    padding: 14,
+    backgroundColor: '#171A2B',
+    borderWidth: 1,
+    borderColor: '#25283C',
+  },
+  panelTight: {
+    marginTop: 12,
+    borderRadius: 22,
+    padding: 14,
+    backgroundColor: '#171A2B',
+    borderWidth: 1,
+    borderColor: '#25283C',
   },
   panelHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 16,
-  },
-  inlineTitle: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    justifyContent: 'space-between',
   },
-  panelIcon: {
-    color: '#cbc9d8',
-    fontSize: 13,
-    fontWeight: '800',
+  panelEyebrow: {
+    color: '#8F7BFF',
+    fontSize: 11,
+    fontWeight: '900',
     textTransform: 'uppercase',
   },
   panelTitle: {
-    color: '#f8f7ff',
-    fontSize: 18,
+    marginTop: 4,
+    color: '#FFFFFF',
+    fontSize: 19,
+    fontWeight: '900',
+  },
+  rangePill: {
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    backgroundColor: '#22253A',
+  },
+  rangeText: {
+    color: '#C9C5D7',
+    fontSize: 11,
     fontWeight: '800',
   },
-  mutedAction: {
-    color: '#aaa8ba',
-    fontSize: 13,
-  },
-  weekLabels: {
-    flexDirection: 'row',
-    paddingLeft: 54,
-    marginBottom: 8,
-    justifyContent: 'space-between',
-  },
-  weekLabel: {
-    width: 28,
-    color: '#9d9bad',
-    fontSize: 13,
-    textAlign: 'center',
-  },
   activityRows: {
-    gap: 6,
+    gap: 7,
   },
   activityRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   activityDate: {
-    width: 50,
-    color: '#aaa8b8',
-    fontSize: 12,
+    width: 48,
+    color: '#9F9BAF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   activityCells: {
     flex: 1,
@@ -686,25 +818,140 @@ const styles = StyleSheet.create({
     height: 9,
     borderRadius: 3,
   },
-  divider: {
-    height: 1,
-    backgroundColor: '#2c2e40',
-    marginVertical: 16,
-  },
   activityFooter: {
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#2B2E43',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  accountRows: {
+    gap: 12,
+  },
+  accountRow: {
+    minHeight: 56,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  accountIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#24283C',
+  },
+  accountIconText: {
+    color: '#FFD64A',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  accountContent: {
+    flex: 1,
+  },
+  accountTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  accountDescription: {
+    marginTop: 3,
+    color: '#A7A3B6',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  accountBadge: {
+    minWidth: 48,
+    borderRadius: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    backgroundColor: '#213529',
+  },
+  accountBadgeAlt: {
+    backgroundColor: '#213044',
+  },
+  accountBadgeText: {
+    color: '#73ED8F',
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  publicCard: {
+    marginTop: 14,
+    borderRadius: 24,
+    padding: 16,
+    backgroundColor: '#8F7BFF',
+    flexDirection: 'row',
+    gap: 14,
+  },
+  publicCopy: {
+    flex: 1,
+  },
+  publicEyebrow: {
+    color: '#ECE7FF',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  publicTitle: {
+    marginTop: 6,
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 25,
+    fontWeight: '900',
+  },
+  publicText: {
+    marginTop: 8,
+    color: '#EEEAFE',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+  },
+  publicPreview: {
+    width: 120,
+    borderRadius: 18,
+    padding: 10,
+    backgroundColor: '#FFFFFF',
+  },
+  previewUrl: {
+    color: '#171A2B',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  previewLineWide: {
+    marginTop: 13,
+    width: '88%',
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#DCD6FF',
+  },
+  previewLine: {
+    marginTop: 7,
+    width: '62%',
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#ECE9FF',
+  },
+  previewStats: {
+    marginTop: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
   },
-  footerMetric: {
-    color: '#bbb9c9',
-    fontSize: 12,
-  },
-  greenText: {
-    color: '#54df75',
+  previewStat: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    color: '#171A2B',
+    backgroundColor: '#FFD64A',
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    fontSize: 10,
+    fontWeight: '900',
   },
   section: {
-    marginTop: 22,
+    marginTop: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -712,29 +959,29 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    color: '#fbfaff',
+    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '900',
   },
-  viewAll: {
-    color: '#9b85ff',
-    fontSize: 14,
+  sectionAction: {
+    color: '#FFD64A',
+    fontSize: 13,
+    fontWeight: '900',
   },
   projectRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
   projectIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   projectIconText: {
-    color: '#fff',
-    fontSize: 20,
+    color: '#FFFFFF',
+    fontSize: 12,
     fontWeight: '900',
   },
   projectContent: {
@@ -742,239 +989,106 @@ const styles = StyleSheet.create({
   },
   rowBetween: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 8,
-  },
-  flexShrink: {
-    flex: 1,
+    gap: 10,
   },
   projectTitle: {
-    color: '#f8f7ff',
+    flex: 1,
+    color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '900',
+  },
+  projectMeta: {
+    color: '#9F9BAF',
+    fontSize: 11,
     fontWeight: '800',
   },
   projectDescription: {
-    color: '#9e9caf',
+    marginTop: 4,
+    color: '#A7A3B6',
     fontSize: 12,
-    marginTop: 3,
-  },
-  statusPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'flex-start',
-  },
-  statusDot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-  },
-  statusText: {
-    color: '#aaa8b8',
-    fontSize: 11,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   progressRow: {
+    marginTop: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginTop: 12,
+    gap: 10,
   },
   progressTrack: {
     flex: 1,
-    height: 6,
-    borderRadius: 6,
-    backgroundColor: '#34364c',
+    height: 7,
+    borderRadius: 999,
+    backgroundColor: '#2D3148',
     overflow: 'hidden',
   },
   progressFill: {
-    height: 6,
-    borderRadius: 6,
+    height: 7,
+    borderRadius: 999,
   },
   progressPercent: {
-    color: '#c2c0cf',
-    fontSize: 13,
     width: 34,
-  },
-  menuDots: {
-    color: '#a2a0b3',
-    fontSize: 18,
-    letterSpacing: 1,
-    marginLeft: 2,
+    color: '#D7D3E4',
+    fontSize: 12,
+    fontWeight: '900',
   },
   rowDivider: {
     height: 1,
-    backgroundColor: '#2c2e40',
-    marginVertical: 18,
-  },
-  taskPanel: {
-    marginTop: 18,
-    borderRadius: 18,
-    backgroundColor: '#181a2b',
-    overflow: 'hidden',
+    marginVertical: 16,
+    backgroundColor: '#2B2E43',
   },
   taskRow: {
-    minHeight: 64,
+    minHeight: 52,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    gap: 10,
-  },
-  taskAccent: {
-    position: 'absolute',
-    left: 0,
-    top: 16,
-    bottom: 16,
-    width: 4,
-    borderTopRightRadius: 4,
-    borderBottomRightRadius: 4,
+    gap: 11,
   },
   checkCircle: {
-    width: 27,
-    height: 27,
-    borderRadius: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     borderWidth: 2,
-    borderColor: '#aaa8b8',
+    borderColor: '#55596F',
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkText: {
-    color: '#09100b',
-    fontSize: 14,
+    color: '#55596F',
+    fontSize: 10,
     fontWeight: '900',
+  },
+  checkTextDone: {
+    color: '#07130B',
   },
   taskContent: {
     flex: 1,
   },
   taskTitle: {
-    color: '#f8f7ff',
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '900',
   },
   duePill: {
-    borderRadius: 8,
+    borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 7,
   },
   dueText: {
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  progressPanel: {
-    minHeight: 128,
-    marginTop: 18,
-    borderRadius: 18,
-    padding: 14,
-    backgroundColor: '#181a2b',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  todayProgressCopy: {
-    width: 104,
-  },
-  miniLabel: {
-    color: '#c6c4d3',
-    fontSize: 12,
-    marginBottom: 14,
-  },
-  bigMetric: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '900',
-  },
-  bigMetricUnit: {
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  goalText: {
-    color: '#aaa8b8',
-    fontSize: 14,
-  },
-  chart: {
-    flex: 1,
-    height: 92,
-  },
-  chartLine: {
-    position: 'absolute',
-    left: 14,
-    right: 8,
-    bottom: 54,
-    borderTopWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: '#626277',
-  },
-  chartPoint: {
-    position: 'absolute',
-    width: 13,
-    height: 13,
-    borderRadius: 7,
-    backgroundColor: '#806bff',
-    borderWidth: 2,
-    borderColor: '#dad5ff',
-  },
-  chartSegment: {
-    position: 'absolute',
-    height: 3,
-    borderRadius: 4,
-    backgroundColor: '#806bff',
-  },
-  chartSegmentOne: {
-    left: 28,
-    bottom: 34,
-    width: 52,
-    transform: [{ rotate: '-17deg' }],
-  },
-  chartSegmentTwo: {
-    left: 76,
-    bottom: 40,
-    width: 48,
-    transform: [{ rotate: '8deg' }],
-  },
-  chartSegmentThree: {
-    left: 122,
-    bottom: 47,
-    width: 54,
-    transform: [{ rotate: '-20deg' }],
-  },
-  chartDays: {
-    position: 'absolute',
-    left: 14,
-    right: 8,
-    bottom: 0,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  chartDay: {
-    color: '#b8b6c8',
-    fontSize: 12,
-  },
-  ring: {
-    width: 66,
-    height: 66,
-    borderRadius: 33,
-    borderWidth: 9,
-    borderLeftColor: '#7765ff',
-    borderTopColor: '#7765ff',
-    borderRightColor: '#34364c',
-    borderBottomColor: '#7765ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ringText: {
-    color: '#fff',
-    fontSize: 19,
+    fontSize: 11,
     fontWeight: '900',
   },
   fab: {
     position: 'absolute',
-    right: 16,
-    bottom: 74,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#ffd12e',
+    right: 18,
+    bottom: 82,
+    width: 58,
+    height: 58,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFD64A',
     shadowColor: '#000',
     shadowOpacity: 0.32,
     shadowOffset: { width: 0, height: 12 },
@@ -982,10 +1096,13 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   fabText: {
-    color: '#10121d',
-    fontSize: 40,
-    lineHeight: 42,
-    fontWeight: '500',
+    color: '#10121D',
+    fontSize: 38,
+    lineHeight: 40,
+    fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.78,
   },
 });
 
