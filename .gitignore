@@ -1,11 +1,39 @@
-node_modules
+# Dependencies
+node_modules/
+
+# React Native CLI generated config
+react-native-config-check.json
 
 # Build outputs
 android/.gradle/
 android/**/build/
-mobile-app/android/.gradle/
-mobile-app/android/**/build/
-mobile-app/android/app/.cxx/
+frontend/android/.gradle/
+frontend/android/**/build/
+frontend/android/app/.cxx/
 
-# Runtime/crash logs
+# iOS
+frontend/ios/Pods/
+frontend/ios/DerivedData/
+frontend/ios/build/
+**/*.pbxuser
+**/*.xcuserstate
+**/xcuserdata/
+
+# Env files
+.env
+.env.local
+backend/.env
+
+# Logs
 *.log
+hs_err_pid*.log
+replay_pid*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.idea/
+.vscode/
+*.iml

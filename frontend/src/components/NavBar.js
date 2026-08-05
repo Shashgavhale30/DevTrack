@@ -7,32 +7,30 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { colors } from '../theme/colors';
+import { getUser } from '../data/userStore';
 
-type NavItem = {
-  icon: string;
-  label: string;
-};
-
-const navItems: NavItem[] = [
-  { icon: 'HM', label: 'Home' },
-  { icon: 'OK', label: 'Task' },
-  { icon: 'ME', label: 'Profile' },
-  { icon: '...', label: 'Other' },
-];
-
-const otherItems: NavItem[] = [
-  { icon: 'LC', label: 'LeetCode' },
-  { icon: 'GH', label: 'GitHub' },
-  { icon: '<>', label: 'VS Code' },
-  { icon: 'ST', label: 'Setting' },
-  { icon: 'RS', label: 'Resources' },
+const navItems = [
+  { icon: '🏚️', label: 'Home' },
+  { icon: '📋', label: 'Task' },
+  { icon: '👤', label: 'Profile' },
+  { icon: '⭕❇️', label: 'Other' },
 ];
 
 function NavBar() {
   const [activeTab, setActiveTab] = useState('Home');
   const [menuVisible, setMenuVisible] = useState(false);
+  const user = getUser();
 
-  const handleNavPress = (label: string) => {
+  const otherItems = [
+    { icon: 'GH', label: user && user.github ? `GitHub · ${user.github}` : 'GitHub' },
+    { icon: 'LC', label: user && user.leetcode ? `LeetCode · ${user.leetcode}` : 'LeetCode' },
+    { icon: '<>', label: 'VS Code' },
+    { icon: 'ST', label: 'Setting' },
+    { icon: 'RS', label: 'Resources' },
+  ];
+
+  const handleNavPress = label => {
     if (label === 'Other') {
       setMenuVisible(true);
       return;
@@ -42,7 +40,7 @@ function NavBar() {
     setMenuVisible(false);
   };
 
-  const handleOtherPress = (label: string) => {
+  const handleOtherPress = label => {
     setActiveTab('Other');
     setMenuVisible(false);
     console.log(`${label} selected`);
@@ -119,9 +117,9 @@ const styles = StyleSheet.create({
     width: 196,
     borderRadius: 18,
     paddingVertical: 8,
-    backgroundColor: '#202235',
+    backgroundColor: colors.otherMenu,
     borderWidth: 1,
-    borderColor: '#30324a',
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOpacity: 0.34,
     shadowOffset: { width: 0, height: 12 },
@@ -136,7 +134,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pressedMenuItem: {
-    backgroundColor: '#2b2d43',
+    backgroundColor: colors.otherMenuPressed,
   },
   otherIconWrap: {
     width: 28,
@@ -144,10 +142,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#2f3149',
+    backgroundColor: colors.otherIconWrap,
   },
   otherIcon: {
-    color: '#ffd22f',
+    color: colors.yellow,
     fontSize: 11,
     fontWeight: '900',
   },
@@ -163,7 +161,7 @@ const styles = StyleSheet.create({
     bottom: 10,
     height: 70,
     borderRadius: 22,
-    backgroundColor: '#191b2c',
+    backgroundColor: colors.nav,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
@@ -186,7 +184,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   activeTab: {
-    backgroundColor: '#28283c',
+    backgroundColor: colors.activeTab,
   },
   tabIcon: {
     color: '#aaa8b8',
@@ -199,7 +197,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   activeText: {
-    color: '#ffd22f',
+    color: colors.yellow,
   },
 });
 
